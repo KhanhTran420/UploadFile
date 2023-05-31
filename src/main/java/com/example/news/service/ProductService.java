@@ -10,4 +10,6 @@ public interface ProductService {
     Product createProduct(MultipartFile imageProduct, ProductDto productDto);
 
     List<Product> getAllProduct();
+
+    Product updateProduct(MultipartFile file, ProductDto productDto);
 }
