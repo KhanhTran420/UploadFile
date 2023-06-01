@@ -1,6 +1,7 @@
 package com.example.news.model.dto;
 
 import com.example.news.model.Category;
+import com.example.news.model.type.NewsContentType;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -20,4 +21,5 @@ public class ProductDto {
     private Category category;
     private boolean activated;
     private boolean deleted;
+    private NewsContentType newContentType;
 }

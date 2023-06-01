@@ -1,5 +1,6 @@
 package com.example.news.model;
 
+import com.example.news.model.type.NewsContentType;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -28,5 +29,5 @@ public class Product {
     private Category category;
     private boolean is_activated;
     private boolean is_deleted;
-
+    private NewsContentType newContentType;
 }
