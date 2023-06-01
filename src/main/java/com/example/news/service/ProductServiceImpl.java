@@ -1,5 +1,6 @@
 package com.example.news.service;
 
+import com.example.news.exception.CustomException;
 import com.example.news.exception.ResourceNotFoundException;
 import com.example.news.exception.UploadFailException;
 import com.example.news.model.Product;
@@ -8,7 +9,13 @@ import com.example.news.model.type.NewsContentType;
 import com.example.news.repository.ProductRepository;
 import com.example.news.utils.ImageUpload;
 import lombok.RequiredArgsConstructor;
+import org.apache.commons.lang3.StringUtils;
+import org.modelmapper.ModelMapper;
 import org.springframework.beans.BeanUtils;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -23,10 +30,14 @@ import java.util.Objects;
 @Service
 @RequiredArgsConstructor
 public class ProductServiceImpl implements ProductService{
+    private final String UPLOAD_FOLDER = "C:\\Users\\Admin\\Desktop\\image";
 
     private final ProductRepository productRepository;
 
     private final ImageUpload imageUpload;
+
+    @Autowired
+    private ModelMapper modelMapper;
 
     private static final int MAXIMUM_SIZE_IMAGE = 15;
     private static final int PARAM_CONVERT_BYTES_TO_MB = 1024*1024;
@@ -85,6 +96,7 @@ public class ProductServiceImpl implements ProductService{
             }
             else {
                 if (imageUpload.checkExist(imageProduct) == false){
+                    validateFile(imageProduct, productDto.getNewContentType());
                     imageUpload.uploadFile(imageProduct);
                 }
                 product.setImage(Base64.getEncoder().encodeToString(imageProduct.getBytes()));
@@ -108,6 +120,35 @@ public class ProductServiceImpl implements ProductService{
             e.printStackTrace();
             return null;
         }
+    }
+
+    @Override
+    public ProductDto findById(Long id) {
+        Product product = productRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("product does not existed"));
+        setFileURL(product);
+        ProductDto productDto = modelMapper.map(product, ProductDto.class);
+        return productDto;
+    }
+
+    @Override
+    public void deleteProduct(Long id) throws ResourceNotFoundException {
+        if (!productRepository.existsById(id)){
+            throw new ResourceNotFoundException("product does not existed");
+        }
+        productRepository.deleteById(id);
+    }
+
+    @Override
+    public Page<ProductDto> getListProducts(String keyword, List<NewsContentType> contentType, Integer page, Integer size) {
+        Pageable pageable = PageRequest.of(page - 1, size);
+        Page<Product> productPage = productRepository.getListProduct(keyword,contentType,pageable);
+        productPage.forEach(this::setFileURL);
+        Page<ProductDto> productDtoPage = productPage.map(item -> {
+            ProductDto productDto = new ProductDto();
+            BeanUtils.copyProperties(item,productDto);
+            return productDto;
+        });
+        return productDtoPage;
     }
 
     private void validateFile(MultipartFile file, NewsContentType type) throws UploadFailException{
@@ -146,6 +187,12 @@ public class ProductServiceImpl implements ProductService{
             }
         } catch (IOException e) {
             throw new UploadFailException("Không thể upload tệp tin");
+        }
+    }
+
+    private void setFileURL(Product product){
+        if (StringUtils.isNotBlank(product.getImage()) && !product.getImage().equals(UPLOAD_FOLDER)){
+            product.setImage(UPLOAD_FOLDER + product.getImage());
         }
     }
 }
